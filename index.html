@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Stop Game</title>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: linear-gradient(135deg, blue, black);
+    color: white;
+}
+
+h1 {
+    font-size: 50px;
+    margin: 20px;
+}
+
+.timer {
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+/* GRID */
+.game-area {
+    display: grid;
+    grid-template-columns: repeat(3, 180px);
+    gap: 20px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    box-sizing: border-box;
+}
+
+/* BOTÃO CENTRAL */
+.center {
+    background: white;
+    color: black;
+    height: 80px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-weight: bold;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 30px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.center.animate {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px white;
+}
+
+.center:hover {
+    transform: scale(1.05);
+}
+
+/* STOP */
+.stop-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+/* 🏆 RANKING */
+.scoreboard {
+    margin-top: 25px;
+    background: rgba(255,255,255,0.1);
+    padding: 15px;
+    border-radius: 10px;
+    width: 260px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.scoreboard ul {
+    list-style: none;
+    padding: 0;
+}
+
+.scoreboard li {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    margin: 5px 0;
+    background: rgba(0,0,0,0.3);
+    border-radius: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>STOP</h1>
+
+<div class="timer" id="timer">Tempo: 40s</div>
+
+<div class="game-area">
+
+    <input id="profissoes" placeholder="Profissões">
+    <input id="nome" placeholder="Nome">
+    <input id="objetos" placeholder="Objetos">
+
+    <input id="animal" placeholder="Animal">
+    
+    <button id="startBtn" onclick="startGame()" class="center">
+        ?
+    </button>
+    
+    <input id="fruta" placeholder="Fruta">
+
+    <input id="filmes" placeholder="Filmes">
+    <input id="cidade" placeholder="Cidade">
+    <input id="cor" placeholder="Cor">
+
+</div>
+
+<br>
+<button onclick="stopGame()" class="stop-btn">STOP</button>
+
+<h2 id="result"></h2>
+
+<!-- 🏆 Ranking -->
+<div class="scoreboard">
+    <h3>🏆 Ranking</h3>
+    <ul id="rankingList"></ul>
+</div>
+
+<script>
+let currentLetter = '';
+let time = 40;
+let interval;
+let isPlaying = false;
+
+function startGame() {
+
+    if (isPlaying) return;
+    isPlaying = true;
+
+    document.getElementById('result').textContent = '';
+
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.disabled = false;
+        input.value = '';
+        input.style.background = 'white';
+    });
+
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const button = document.getElementById('startBtn');
+
+    button.disabled = true;
+
+    clearInterval(interval);
+
+    let count = 0;
+
+    const animation = setInterval(() => {
+        const randomLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+        button.textContent = randomLetter;
+
+        button.classList.remove('animate');
+        void button.offsetWidth;
+        button.classList.add('animate');
+
+        count++;
+
+        if (count > 20) {
+            clearInterval(animation);
+
+            currentLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+            button.textContent = currentLetter;
+
+            button.disabled = false;
+
+            startTimer();
+        }
+
+    }, 80);
+}
+
+function startTimer() {
+    time = 40;
+    updateTimer();
+
+    interval = setInterval(() => {
+        time--;
+        updateTimer();
+
+        if (time <= 0) {
+            clearInterval(interval);
+            stopGame();
+        }
+    }, 1000);
+}
+
+function updateTimer() {
+    const el = document.getElementById("timer");
+    el.textContent = "Tempo: " + time + "s";
+
+    el.style.color = time <= 10 ? "red" : "white";
+}
+
+function stopGame() {
+    if (!currentLetter) return;
+
+    clearInterval(interval);
+
+    let score = 0;
+
+    const campos = [
+        'nome','animal','fruta','cor','cidade',
+        'profissoes','objetos','filmes'
+    ];
+
+    campos.forEach(id => {
+        const input = document.getElementById(id);
+        const valor = input.value;
+
+        if (valor && valor.toUpperCase().startsWith(currentLetter)) {
+            score += 10;
+            input.style.background = "#2ecc71";
+        } else {
+            input.style.background = "#e74c3c";
+        }
+
+        input.disabled = true;
+    });
+
+    document.getElementById('result').textContent = `Pontuação: ${score}`;
+
+    // 🏆 salvar ranking
+    const playerName = prompt("Seu nome:");
+
+    if (playerName) {
+        saveScore(playerName, score);
+    }
+
+    isPlaying = false;
+}
+
+/* 🏆 RANKING */
+
+function saveScore(name, score) {
+    let ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+
+    ranking.push({ name, score });
+
+    ranking.sort((a, b) => b.score - a.score);
+
+    ranking = ranking.slice(0, 5);
+
+    localStorage.setItem('ranking', JSON.stringify(ranking));
+
+    loadRanking();
+}
+
+function loadRanking() {
+    const ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+    const list = document.getElementById('rankingList');
+
+    list.innerHTML = '';
+
+    ranking.forEach((item, index) => {
+        const li = document.createElement('li');
+
+        const medal = ["🥇","🥈","🥉"][index] || "⭐";
+
+        li.innerHTML = `
+            <span>${medal} ${item.name}</span>
+            <strong>${item.score}</strong>
+        `;
+
+        list.appendChild(li);
+    });
+}
+
+loadRanking();
+</script>
+
+</body>
+</html>
